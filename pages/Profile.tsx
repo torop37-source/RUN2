@@ -12,6 +12,11 @@ export const Profile: React.FC = () => {
   const [showAddShoe, setShowAddShoe] = useState(false);
   const [newShoe, setNewShoe] = useState({ brand: '', model: '', maxDistance: '800' });
 
+  // Calculator State
+  const [showVmaCalc, setShowVmaCalc] = useState(false);
+  const [calcDist, setCalcDist] = useState('10');
+  const [calcTime, setCalcTime] = useState('');
+
   // Local state for form inputs
   const [formData, setFormData] = useState({
     name: '',
@@ -80,7 +85,6 @@ export const Profile: React.FC = () => {
 
   const handleSave = () => {
     setIsSaving(true);
-    // Simulate API call
     setTimeout(() => {
         updateUser({
             name: formData.name,
@@ -90,6 +94,35 @@ export const Profile: React.FC = () => {
         setIsSaving(false);
         alert("Profil mis à jour avec succès !");
     }, 800);
+  };
+
+  // VMA Estimation Logic
+  const estimateVMA = () => {
+      // Parse time (mm:ss or hh:mm:ss)
+      const parts = calcTime.split(':').map(p => parseFloat(p));
+      let hours = 0, mins = 0, secs = 0;
+      
+      if (parts.length === 3) { [hours, mins, secs] = parts; }
+      else if (parts.length === 2) { [mins, secs] = parts; }
+      else if (parts.length === 1) { mins = parts[0]; }
+      else return;
+
+      const totalHours = hours + (mins / 60) + (secs / 3600);
+      if (totalHours <= 0) return;
+
+      const distKm = parseFloat(calcDist);
+      const speedKmH = distKm / totalHours;
+
+      // Coefficients (Estimated sustainability % of VMA)
+      let coeff = 0.90; // Default 10km
+      if (distKm <= 5) coeff = 0.95;
+      else if (distKm <= 15) coeff = 0.90;
+      else if (distKm <= 22) coeff = 0.85; // Semi
+      else coeff = 0.80; // Marathon
+
+      const estimated = (speedKmH / coeff).toFixed(1);
+      setFormData(prev => ({ ...prev, vma: estimated }));
+      setShowVmaCalc(false);
   };
 
   // VO2 Max Calculation Logic
@@ -121,30 +154,15 @@ export const Profile: React.FC = () => {
       {/* Tabs */}
       <div className="mb-6 border-b border-border-light dark:border-border-dark overflow-x-auto no-scrollbar">
          <div className="flex gap-6 min-w-max">
-            <button 
-                onClick={() => setActiveTab('personal')}
-                className={`pb-3 border-b-2 font-bold text-sm transition-colors ${activeTab === 'personal' ? 'border-primary text-text-light dark:text-text-dark' : 'border-transparent text-subtle-light dark:text-subtle-dark hover:text-text-light'}`}
-            >
-                Personnel
-            </button>
-            <button 
-                onClick={() => setActiveTab('performance')}
-                className={`pb-3 border-b-2 font-bold text-sm transition-colors ${activeTab === 'performance' ? 'border-primary text-text-light dark:text-text-dark' : 'border-transparent text-subtle-light dark:text-subtle-dark hover:text-text-light'}`}
-            >
-                Performance
-            </button>
-            <button 
-                onClick={() => setActiveTab('gear')}
-                className={`pb-3 border-b-2 font-bold text-sm transition-colors ${activeTab === 'gear' ? 'border-primary text-text-light dark:text-text-dark' : 'border-transparent text-subtle-light dark:text-subtle-dark hover:text-text-light'}`}
-            >
-                Matériel
-            </button>
-            <button 
-                onClick={() => setActiveTab('preferences')}
-                className={`pb-3 border-b-2 font-bold text-sm transition-colors ${activeTab === 'preferences' ? 'border-primary text-text-light dark:text-text-dark' : 'border-transparent text-subtle-light dark:text-subtle-dark hover:text-text-light'}`}
-            >
-                Préférences
-            </button>
+            {['personal', 'performance', 'gear', 'preferences'].map(tab => (
+                <button 
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`pb-3 border-b-2 font-bold text-sm transition-colors capitalize ${activeTab === tab ? 'border-primary text-text-light dark:text-text-dark' : 'border-transparent text-subtle-light dark:text-subtle-dark hover:text-text-light'}`}
+                >
+                    {tab === 'personal' ? 'Personnel' : tab === 'performance' ? 'Santé & Perf' : tab === 'gear' ? 'Matériel' : 'Préférences'}
+                </button>
+            ))}
          </div>
       </div>
 
@@ -199,14 +217,14 @@ export const Profile: React.FC = () => {
 
          {activeTab === 'performance' && (
              <div>
-                <h3 className="text-lg font-bold mb-4">Santé & Performance</h3>
+                <h3 className="text-lg font-bold mb-4">Indicateurs de Performance</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-6">
                         <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
                             <p className="text-sm font-medium mb-2 text-primary flex items-center gap-2"><Icon name="info" /> Indice de référence</p>
                             <p className="text-xs text-subtle-light dark:text-subtle-dark">
-                                Votre VMA (Vitesse Maximale Aérobie) est la vitesse à laquelle votre consommation d'oxygène est maximale. C'est la base pour calculer votre VO2 Max.
+                                Votre VMA (Vitesse Maximale Aérobie) sert de base à l'IA pour calculer vos allures et estimer votre VO2 Max.
                             </p>
                         </div>
 
@@ -224,29 +242,90 @@ export const Profile: React.FC = () => {
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-subtle-light text-sm font-bold">km/h</span>
                             </div>
                         </label>
+                        
+                        {/* VMA Estimator Toggle */}
+                        <div>
+                            <button 
+                                onClick={() => setShowVmaCalc(!showVmaCalc)}
+                                className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                            >
+                                <Icon name="calculate" />
+                                {showVmaCalc ? "Masquer le calculateur" : "Je ne connais pas ma VMA"}
+                            </button>
+
+                            {showVmaCalc && (
+                                <div className="mt-3 p-4 rounded-xl bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark animate-in slide-in-from-top-2">
+                                    <h4 className="font-bold text-sm mb-3">Estimer depuis une course</h4>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] uppercase font-bold text-subtle-light">Distance</span>
+                                            <select 
+                                                value={calcDist}
+                                                onChange={(e) => setCalcDist(e.target.value)}
+                                                className="p-2 rounded-lg bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark text-sm"
+                                            >
+                                                <option value="5">5 km</option>
+                                                <option value="10">10 km</option>
+                                                <option value="21.1">Semi-Marathon</option>
+                                                <option value="42.195">Marathon</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] uppercase font-bold text-subtle-light">Chrono (mm:ss)</span>
+                                            <input 
+                                                type="text" 
+                                                value={calcTime}
+                                                onChange={(e) => setCalcTime(e.target.value)}
+                                                placeholder="ex: 50:30" 
+                                                className="p-2 rounded-lg bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={estimateVMA}
+                                        className="w-full py-2 bg-primary text-background-dark font-bold rounded-lg text-xs"
+                                    >
+                                        Calculer & Mettre à jour
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
+                    {/* VO2 Max Gauge Card */}
                     <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark relative overflow-hidden">
                         {vo2Max ? (
                             <>
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gray-200">
-                                    <div className={`h-full ${vo2Status?.bg}`} style={{ width: `${Math.min(100, (parseFloat(vo2Max) / 80) * 100)}%` }}></div>
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-200 dark:bg-gray-700">
+                                    <div className={`h-full transition-all duration-1000 ease-out ${vo2Status?.bg}`} style={{ width: `${Math.min(100, (parseFloat(vo2Max) / 85) * 100)}%` }}></div>
                                 </div>
-                                <p className="text-sm font-bold uppercase text-subtle-light dark:text-subtle-dark mb-1">VO2 Max Estimé</p>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-black tracking-tighter">{vo2Max}</span>
-                                    <span className="text-sm text-subtle-light">ml/kg/min</span>
+                                <div className="flex items-center gap-2 mb-4 text-subtle-light dark:text-subtle-dark">
+                                    <Icon name="ecg_heart" className="text-red-500 animate-pulse" filled />
+                                    <p className="text-xs font-bold uppercase tracking-wider">VO2 Max Estimé</p>
                                 </div>
+                                
+                                <div className="flex items-baseline gap-2 mb-2">
+                                    <span className="text-6xl font-black tracking-tighter text-text-light dark:text-text-dark">{vo2Max}</span>
+                                    <span className="text-sm font-bold text-subtle-light">ml/kg/min</span>
+                                </div>
+                                
                                 {vo2Status && (
-                                    <div className={`mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-opacity-10 ${vo2Status.bg.replace('bg-', 'bg-opacity-10 ')} ${vo2Status.color}`}>
+                                    <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${vo2Status.bg.replace('bg-', 'border-').replace('500', '200')} ${vo2Status.color} bg-opacity-10`}>
                                         Niveau {vo2Status.label}
                                     </div>
                                 )}
+                                
+                                <p className="text-[10px] text-center mt-6 text-subtle-light max-w-[200px]">
+                                    Calcul basé sur votre VMA ({formData.vma} km/h). Améliorez votre vitesse pour augmenter ce score !
+                                </p>
                             </>
                         ) : (
-                            <div className="text-center opacity-50">
-                                <Icon name="monitor_heart" className="text-4xl mb-2" />
-                                <p className="text-sm font-medium">Entrez votre VMA pour voir votre VO2 Max</p>
+                            <div className="text-center opacity-60 py-8">
+                                <div className="size-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+                                    <Icon name="monitor_heart" className="text-3xl" />
+                                </div>
+                                <p className="text-sm font-bold">Données manquantes</p>
+                                <p className="text-xs mt-1">Entrez votre VMA pour voir votre VO2 Max</p>
                             </div>
                         )}
                     </div>
@@ -262,7 +341,7 @@ export const Profile: React.FC = () => {
                 </div>
 
                 {showAddShoe && (
-                    <div className="mb-6 p-4 bg-background-light dark:bg-background-dark rounded-xl border border-border-light dark:border-border-dark">
+                    <div className="mb-6 p-4 bg-background-light dark:bg-background-dark rounded-xl border border-border-light dark:border-border-dark animate-in fade-in">
                         <h4 className="font-bold text-sm mb-3">Nouvelle paire</h4>
                         <div className="grid grid-cols-2 gap-3 mb-3">
                             <input type="text" placeholder="Marque (ex: Nike)" className="px-3 py-2 rounded bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark text-sm" value={newShoe.brand} onChange={e => setNewShoe({...newShoe, brand: e.target.value})} />
@@ -343,3 +422,4 @@ export const Profile: React.FC = () => {
     </div>
   );
 };
+    

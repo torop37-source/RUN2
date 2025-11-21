@@ -8,10 +8,11 @@ export const ProgramDetails: React.FC = () => {
   const [program, setProgram] = useState<ProgramData | null>(null);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedSession, setSelectedSession] = useState<RunSession | null>(null);
-  const [isAdapting, setIsAdapting] = useState(false);
-  const [adaptationPrompt, setAdaptationPrompt] = useState("");
-  const [showAdaptModal, setShowAdaptModal] = useState(false);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+  
+  // Feedback state
+  const [rpe, setRpe] = useState(5);
+  const [feedback, setFeedback] = useState("");
 
   const loadProgram = () => {
       const saved = localStorage.getItem('currentProgram');
@@ -32,96 +33,52 @@ export const ProgramDetails: React.FC = () => {
     return () => window.removeEventListener('programUpdated', handleUpdate);
   }, []);
 
+  // Reset feedback form when session opens
+  useEffect(() => {
+      if(selectedSession) {
+          setRpe(selectedSession.rpe || 5);
+          setFeedback(selectedSession.feedback || "");
+      }
+  }, [selectedSession]);
+
   const saveProgram = (updatedProgram: ProgramData) => {
      setProgram(updatedProgram);
      localStorage.setItem('currentProgram', JSON.stringify(updatedProgram));
-     // Notify other components even if changed here
      window.dispatchEvent(new Event('programUpdated'));
   };
 
-  const toggleSessionComplete = (session: RunSession) => {
-    if (!program) return;
+  const toggleSessionComplete = () => {
+    if (!program || !selectedSession) return;
     
     const updatedProgram = { ...program };
     const week = updatedProgram.weeks[selectedWeekIndex];
-    const sessionIndex = week.sessions.findIndex(s => s.id === session.id);
+    const sessionIndex = week.sessions.findIndex(s => s.id === selectedSession.id);
     
     if (sessionIndex >= 0) {
-        week.sessions[sessionIndex].completed = !week.sessions[sessionIndex].completed;
-        saveProgram(updatedProgram);
-        setSelectedSession(week.sessions[sessionIndex]);
-    }
-  };
-
-  const adaptProgram = async () => {
-    if (!program || !adaptationPrompt) return;
-    setIsAdapting(true);
-
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const isCompleting = !week.sessions[sessionIndex].completed;
+        week.sessions[sessionIndex].completed = isCompleting;
         
-        const prompt = `
-            Voici le programme actuel (JSON): ${JSON.stringify(program.weeks[selectedWeekIndex])}.
-            L'utilisateur demande: "${adaptationPrompt}".
-            Réécris la semaine d'entraînement.
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        weekNumber: { type: Type.INTEGER },
-                        dates: { type: Type.STRING },
-                        sessions: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    id: { type: Type.STRING },
-                                    day: { type: Type.STRING },
-                                    date: { type: Type.STRING },
-                                    type: { type: Type.STRING, enum: ['run', 'rest', 'interval', 'long', 'test', 'recovery'] },
-                                    title: { type: Type.STRING },
-                                    description: { type: Type.STRING },
-                                    distance: { type: Type.STRING },
-                                    duration: { type: Type.STRING },
-                                    completed: { type: Type.BOOLEAN },
-                                    details: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            warmup: { type: Type.STRING },
-                                            main: { type: Type.STRING },
-                                            cooldown: { type: Type.STRING }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        if (response.text) {
-            const newWeek: WeeklyPlan = JSON.parse(response.text);
-            const updatedProgram = { ...program };
-            updatedProgram.weeks[selectedWeekIndex] = newWeek;
-            saveProgram(updatedProgram);
-            setShowAdaptModal(false);
-            setAdaptationPrompt("");
+        if (isCompleting) {
+            week.sessions[sessionIndex].rpe = rpe;
+            week.sessions[sessionIndex].feedback = feedback;
         }
 
-    } catch (e) {
-        console.error("Adaptation failed", e);
-        alert("Impossible d'adapter le programme pour le moment.");
-    } finally {
-        setIsAdapting(false);
+        saveProgram(updatedProgram);
+        setSelectedSession(week.sessions[sessionIndex]); // Update modal view
     }
   };
+
+  const parseDurationToMinutes = (durationStr?: string): number => {
+      if (!durationStr) return 0;
+      const clean = durationStr.toLowerCase().replace(/\s/g, '');
+      if (clean.includes('h')) {
+          const parts = clean.split('h');
+          return ((parseInt(parts[0]) || 0) * 60) + (parseInt(parts[1]) || 0);
+      }
+      return parseInt(clean) || 0;
+  };
+
+  const currentLoad = selectedSession ? Math.round(parseDurationToMinutes(selectedSession.duration) * rpe) : 0;
 
   if (!program) {
     return (
@@ -162,6 +119,7 @@ export const ProgramDetails: React.FC = () => {
              </div>
              <div className="p-4 sm:p-6 flex flex-col gap-4 overflow-y-auto">
                 <p className="text-subtle-light dark:text-subtle-dark">{selectedSession.description}</p>
+                
                 {selectedSession.details && (
                     <>
                         <div className="flex flex-col gap-2">
@@ -180,13 +138,52 @@ export const ProgramDetails: React.FC = () => {
                         </div>
                     </>
                 )}
+
+                {/* Feedback Section (Only if not rest) */}
+                {selectedSession.type !== 'rest' && (
+                    <div className={`p-4 rounded-xl border ${selectedSession.completed ? 'bg-primary/5 border-primary/20' : 'bg-background-light dark:bg-background-dark border-border-light dark:border-border-dark'}`}>
+                        <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                            <Icon name="rate_review" className="text-primary" /> 
+                            {selectedSession.completed ? "Votre ressenti (Enregistré)" : "Ressenti de la séance"}
+                        </h3>
+                        
+                        <div className="mb-4">
+                             <div className="flex justify-between text-xs font-bold mb-2">
+                                <span>RPE: {rpe}/10</span>
+                                <span className="text-primary">Charge: {currentLoad}</span>
+                             </div>
+                             <input 
+                                type="range" 
+                                min="1" max="10" step="1"
+                                value={rpe}
+                                onChange={(e) => setRpe(parseInt(e.target.value))}
+                                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary"
+                                disabled={selectedSession.completed}
+                             />
+                             <div className="flex justify-between text-[10px] text-subtle-light mt-1">
+                                 <span>Facile</span>
+                                 <span>Difficile</span>
+                                 <span>Maximal</span>
+                             </div>
+                        </div>
+
+                        <textarea 
+                            className={`w-full p-3 rounded-lg border text-sm resize-none outline-none focus:border-primary ${selectedSession.completed ? 'bg-transparent border-transparent font-medium' : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark'}`}
+                            placeholder="Commentaire (ex: Douleur mollet, bonnes sensations...)"
+                            rows={selectedSession.completed ? 1 : 2}
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            disabled={selectedSession.completed}
+                        />
+                    </div>
+                )}
              </div>
              <div className="p-4 bg-background-light dark:bg-background-dark border-t border-border-light dark:border-border-dark flex flex-col gap-3 shrink-0 pb-8 sm:pb-4">
                 <button 
-                    onClick={() => toggleSessionComplete(selectedSession)}
+                    onClick={toggleSessionComplete}
                     className={`w-full py-3 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${selectedSession.completed ? 'bg-gray-200 dark:bg-gray-700 text-text-light dark:text-text-dark' : 'bg-primary text-background-dark hover:opacity-90'}`}
                 >
-                    {selectedSession.completed ? <><Icon name="undo" /> Annuler</> : <><Icon name="check" /> Marquer comme terminé</>}
+                    {selectedSession.completed ? <><Icon name="undo" /> Modifier le feedback / Annuler</> : <><Icon name="check" /> Valider la séance</>}
                 </button>
              </div>
           </div>
@@ -247,7 +244,15 @@ export const ProgramDetails: React.FC = () => {
                          {session.completed && <Icon name="check_circle" className="text-primary text-sm" filled />}
                     </div>
                     <p className="text-xs opacity-80 line-clamp-1">{session.description}</p>
-                    {session.distance && <span className="text-[10px] font-bold mt-1 inline-block bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">{session.distance}</span>}
+                    <div className="flex gap-2 mt-1">
+                        {session.distance && <span className="text-[10px] font-bold inline-block bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">{session.distance}</span>}
+                        {/* Added RPE Badge */}
+                        {session.completed && session.rpe && (
+                            <span className="text-[10px] font-bold inline-block bg-orange-100 dark:bg-orange-900/30 text-orange-600 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <Icon name="bolt" className="text-[10px]" filled /> {session.rpe}
+                            </span>
+                        )}
+                    </div>
                 </div>
                 
                 <Icon name="chevron_right" className="opacity-30 text-sm" />

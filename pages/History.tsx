@@ -34,13 +34,45 @@ export const History: React.FC = () => {
     return () => window.removeEventListener('programUpdated', handleUpdate);
   }, []);
 
+  // Helper: Parse duration
+  const parseDurationToMinutes = (durationStr?: string): number => {
+      if (!durationStr) return 0;
+      const clean = durationStr.toLowerCase().replace(/\s/g, '');
+      if (clean.includes('h')) {
+          const parts = clean.split('h');
+          return ((parseInt(parts[0]) || 0) * 60) + (parseInt(parts[1]) || 0);
+      }
+      return parseInt(clean) || 0;
+  };
+
+  // Helper: Default RPE
+  const getDefaultRPE = (type: string): number => {
+      switch(type) {
+          case 'interval': return 8;
+          case 'test': return 9;
+          case 'tempo': return 7;
+          case 'long': return 5;
+          case 'run': return 4;
+          case 'recovery': return 2;
+          default: return 0;
+      }
+  };
+
+  const getSessionLoad = (session: RunSession) => {
+      const mins = parseDurationToMinutes(session.duration);
+      const rpe = session.rpe || getDefaultRPE(session.type);
+      return Math.round(mins * rpe);
+  };
+
   const filteredSessions = completedSessions.filter(s => filter === 'all' || s.type === 'run' || s.type === 'interval' || s.type === 'long');
   
-  // Simple stats calculation
+  // Stats calculation
   const totalDistance = completedSessions.reduce((acc, curr) => {
-      const dist = parseFloat(curr.distance || "0");
+      const dist = parseFloat(curr.distance?.replace(',', '.') || "0");
       return acc + (isNaN(dist) ? 0 : dist);
   }, 0);
+
+  const totalLoad = completedSessions.reduce((acc, curr) => acc + getSessionLoad(curr), 0);
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-8">
@@ -50,14 +82,18 @@ export const History: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
           <div className="flex flex-col gap-1 rounded-xl p-4 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
             <p className="text-xs font-medium text-subtle-light dark:text-subtle-dark uppercase">Séances</p>
-            <p className="text-2xl font-bold text-text-light dark:text-text-dark">{completedSessions.length}</p>
+            <p className="text-xl md:text-2xl font-bold text-text-light dark:text-text-dark">{completedSessions.length}</p>
           </div>
           <div className="flex flex-col gap-1 rounded-xl p-4 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
-            <p className="text-xs font-medium text-subtle-light dark:text-subtle-dark uppercase">Distance Est.</p>
-            <p className="text-2xl font-bold text-text-light dark:text-text-dark">{totalDistance.toFixed(1)} km</p>
+            <p className="text-xs font-medium text-subtle-light dark:text-subtle-dark uppercase">Distance</p>
+            <p className="text-xl md:text-2xl font-bold text-text-light dark:text-text-dark">{totalDistance.toFixed(1)} km</p>
+          </div>
+          <div className="flex flex-col gap-1 rounded-xl p-4 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+            <p className="text-xs font-medium text-subtle-light dark:text-subtle-dark uppercase flex items-center gap-1"><Icon name="bolt" className="text-orange-500" filled/> Charge</p>
+            <p className="text-xl md:text-2xl font-bold text-text-light dark:text-text-dark">{totalLoad}</p>
           </div>
       </div>
 
@@ -77,23 +113,31 @@ export const History: React.FC = () => {
         
         {filteredSessions.length > 0 ? (
             <div className="flex flex-col divide-y divide-border-light dark:divide-border-dark">
-                {filteredSessions.map((session, idx) => (
-                    <div key={idx} className="p-4 flex items-center gap-4 hover:bg-primary/5 transition-colors">
-                        <div className={`size-10 rounded-full flex items-center justify-center shrink-0 ${session.type === 'rest' ? 'bg-orange-100 text-orange-600' : 'bg-primary/20 text-primary'}`}>
-                            <Icon name={session.type === 'rest' ? 'hotel' : 'directions_run'} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline">
-                                <h4 className="font-bold text-sm truncate">{session.title}</h4>
-                                <span className="text-xs text-subtle-light">{session.day}</span>
+                {filteredSessions.map((session, idx) => {
+                    const load = getSessionLoad(session);
+                    return (
+                        <div key={idx} className="p-4 flex items-center gap-4 hover:bg-primary/5 transition-colors">
+                            <div className={`size-10 rounded-full flex items-center justify-center shrink-0 ${session.type === 'rest' ? 'bg-orange-100 text-orange-600' : 'bg-primary/20 text-primary'}`}>
+                                <Icon name={session.type === 'rest' ? 'hotel' : 'directions_run'} />
                             </div>
-                            <div className="flex gap-3 mt-1 text-xs text-subtle-light dark:text-subtle-dark">
-                                {session.distance && <span className="flex items-center gap-1"><Icon name="straighten" className="text-[10px]" /> {session.distance}</span>}
-                                {session.duration && <span className="flex items-center gap-1"><Icon name="schedule" className="text-[10px]" /> {session.duration}</span>}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-bold text-sm truncate">{session.title}</h4>
+                                    <span className="text-xs text-subtle-light">{session.day}</span>
+                                </div>
+                                <div className="flex gap-3 mt-1 text-xs text-subtle-light dark:text-subtle-dark items-center">
+                                    {session.distance && <span className="flex items-center gap-1"><Icon name="straighten" className="text-[10px]" /> {session.distance}</span>}
+                                    {session.duration && <span className="flex items-center gap-1"><Icon name="schedule" className="text-[10px]" /> {session.duration}</span>}
+                                    {session.type !== 'rest' && (
+                                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-bold">
+                                            <Icon name="bolt" className="text-[10px]" filled /> {load}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         ) : (
             <div className="p-8 text-center flex flex-col items-center text-subtle-light">

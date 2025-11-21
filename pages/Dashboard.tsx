@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { ProgramData } from '../types';
+import { ProgramData, RunSession } from '../types';
 import { InstallButton } from '../components/InstallButton';
 import { useUser } from '../contexts/UserContext';
 
@@ -36,19 +36,79 @@ export const Dashboard: React.FC = () => {
     { day: 'Dim', label: '10km', icon: 'timer', type: 'long' },
   ];
 
-  // Calcul de progression simple
-  const calculateProgress = () => {
-      if(!program) return 0;
-      let total = 0;
-      let done = 0;
-      program.weeks.forEach(w => w.sessions.forEach(s => {
-          total++;
-          if(s.completed) done++;
-      }));
-      return total === 0 ? 0 : Math.round((done / total) * 100);
+  // Helper: Parse duration string to minutes
+  const parseDurationToMinutes = (durationStr?: string): number => {
+      if (!durationStr) return 0;
+      const clean = durationStr.toLowerCase().replace(/\s/g, '');
+      
+      // Format "1h30" or "1h"
+      if (clean.includes('h')) {
+          const parts = clean.split('h');
+          const hours = parseInt(parts[0]) || 0;
+          const mins = parseInt(parts[1]) || 0;
+          return (hours * 60) + mins;
+      }
+      
+      // Format "45min" or just "45"
+      return parseInt(clean) || 0;
   };
 
-  const progress = calculateProgress();
+  // Helper: Get Default RPE based on type if not user-provided
+  const getDefaultRPE = (type: string): number => {
+      switch(type) {
+          case 'interval': return 8;
+          case 'test': return 9;
+          case 'tempo': return 7;
+          case 'long': return 5;
+          case 'run': return 4;
+          case 'recovery': return 2;
+          default: return 0;
+      }
+  };
+
+  // Calcul de progression simple & Charge
+  const calculateStats = () => {
+      if(!program) return { progress: 0, totalDistance: 0, sessionCount: 0, currentWeekLoad: 0 };
+      
+      let total = 0;
+      let done = 0;
+      let totalDist = 0;
+      let currentWeekLoad = 0;
+
+      // Assume first week is current for this demo, or logic to find current week based on date
+      const currentWeekIndex = 0; 
+
+      program.weeks.forEach((w, idx) => {
+          w.sessions.forEach(s => {
+              total++;
+              if(s.completed) {
+                  done++;
+                  // Distance sum
+                  if (s.distance) {
+                      const d = parseFloat(s.distance.replace(',', '.'));
+                      if(!isNaN(d)) totalDist += d;
+                  }
+                  
+                  // Load Calculation (Foster: Duration * RPE)
+                  // Only for current week to show "Weekly Load"
+                  if (idx === currentWeekIndex) {
+                      const mins = parseDurationToMinutes(s.duration);
+                      const rpe = s.rpe || getDefaultRPE(s.type);
+                      currentWeekLoad += (mins * rpe);
+                  }
+              }
+          });
+      });
+
+      return {
+          progress: total === 0 ? 0 : Math.round((done / total) * 100),
+          totalDistance: Math.round(totalDist),
+          sessionCount: done,
+          currentWeekLoad: Math.round(currentWeekLoad)
+      };
+  };
+
+  const stats = calculateStats();
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6">
@@ -155,29 +215,33 @@ export const Dashboard: React.FC = () => {
                  <Icon name="straighten" className="text-primary" />
                  <span className="text-xs font-bold uppercase">Distance Totale</span>
                </div>
-               <span className="text-2xl font-black text-text-light dark:text-text-dark">0 <span className="text-sm font-normal text-subtle-light">km</span></span>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">{stats.totalDistance} <span className="text-sm font-normal text-subtle-light">km</span></span>
             </div>
-             {/* Mini Stat Card 2 */}
+             {/* Mini Stat Card 2 - Load */}
             <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
                <div className="flex items-center gap-2 mb-2 text-subtle-light dark:text-subtle-dark">
-                 <Icon name="schedule" className="text-primary" />
-                 <span className="text-xs font-bold uppercase">Séances</span>
+                 <Icon name="bolt" className="text-orange-500" filled />
+                 <span className="text-xs font-bold uppercase">Charge Hebdo</span>
                </div>
-               <span className="text-2xl font-black text-text-light dark:text-text-dark">0</span>
+               <div className="flex items-baseline gap-2">
+                   <span className="text-2xl font-black text-text-light dark:text-text-dark">{stats.currentWeekLoad}</span>
+                   <span className="text-[10px] font-medium text-subtle-light">unités</span>
+               </div>
+               <p className="text-[10px] text-subtle-light mt-1">Basé sur Durée × Intensité</p>
             </div>
           </div>
 
           {/* Progress Card */}
           <Link to="/history" className="block p-5 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-base text-text-light dark:text-text-dark">Progression</h3>
-                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{progress}%</span>
+                <h3 className="font-bold text-base text-text-light dark:text-text-dark">Progression Plan</h3>
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{stats.progress}%</span>
             </div>
             
             <div className="w-full bg-background-light dark:bg-background-dark h-3 rounded-full overflow-hidden mb-2">
-               <div className="bg-primary h-full rounded-full" style={{ width: `${progress}%` }}></div>
+               <div className="bg-primary h-full rounded-full" style={{ width: `${stats.progress}%` }}></div>
             </div>
-            <p className="text-xs text-subtle-light dark:text-subtle-dark">{progress > 0 ? "Continuez comme ça !" : "Démarrez votre première séance !"}</p>
+            <p className="text-xs text-subtle-light dark:text-subtle-dark">{stats.progress > 0 ? `${stats.sessionCount} séances terminées.` : "Démarrez votre première séance !"}</p>
           </Link>
 
         </div>

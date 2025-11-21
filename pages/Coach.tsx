@@ -3,17 +3,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '../components/Icon';
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { useUser } from '../contexts/UserContext';
-import { ChatMessage, ProgramData, WeeklyPlan } from '../types';
+import { ChatMessage, ProgramData, WeeklyPlan, RunSession } from '../types';
 
 export const Coach: React.FC = () => {
   const { user } = useUser();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'model', text: `Bonjour ${user.name || 'Athlète'} ! Je suis connecté à ton programme. Tu peux me demander de modifier tes séances (ex: "décale la séance de demain", "allège ma semaine car je suis fatigué", "remplace la sortie longue par du repos").`, timestamp: Date.now() }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingProgram, setIsUpdatingProgram] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -23,17 +22,59 @@ export const Coach: React.FC = () => {
     scrollToBottom();
   }, [messages, isUpdatingProgram]);
 
-  // Helper to get context
-  const getProgramContext = (): { program: ProgramData | null, currentWeek: WeeklyPlan | null, weekIndex: number } => {
+  // Helper to get context including history
+  const getProgramContext = (): { program: ProgramData | null, currentWeek: WeeklyPlan | null, weekIndex: number, completedSessions: RunSession[] } => {
       const saved = localStorage.getItem('currentProgram');
-      if (!saved) return { program: null, currentWeek: null, weekIndex: -1 };
+      if (!saved) return { program: null, currentWeek: null, weekIndex: -1, completedSessions: [] };
       
       const program: ProgramData = JSON.parse(saved);
-      // In a real app, compare dates. Here we default to the first week for simplicity
-      // or the first week that isn't fully completed.
-      const weekIndex = 0; 
-      return { program, currentWeek: program.weeks[weekIndex], weekIndex };
+      const weekIndex = 0; // In a real app, find current week based on date
+      
+      // Flatten sessions to find completed ones
+      const completedSessions: RunSession[] = [];
+      program.weeks.forEach(w => {
+        w.sessions.forEach(s => {
+            if(s.completed) completedSessions.push(s);
+        });
+      });
+
+      return { program, currentWeek: program.weeks[weekIndex], weekIndex, completedSessions };
   };
+
+  // Helper to format history for the Prompt
+  const getHistoryText = (sessions: RunSession[]) => {
+      if (sessions.length === 0) return "Aucune séance terminée pour l'instant.";
+      
+      // Get last 5 sessions
+      const recent = sessions.slice(-5);
+      return recent.map(s => 
+          `- ${s.day} (${s.title}): RPE=${s.rpe || 'N/A'}/10. Feedback: "${s.feedback || 'Aucun'}"`
+      ).join('\n');
+  };
+
+  // Initialize Coach Greeting
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const { completedSessions } = getProgramContext();
+    let initialText = `Bonjour ${user.name || 'Athlète'} ! Je suis ton coach. Je suis là pour adapter ton programme à ta forme du moment.`;
+
+    if (completedSessions.length > 0) {
+        const last = completedSessions[completedSessions.length - 1];
+        
+        // Proactive Analysis
+        if (last.rpe && last.rpe >= 8) {
+            initialText = `Bonjour ${user.name} ! J'ai vu que ta dernière séance "${last.title}" était très intense (RPE ${last.rpe}/10). Comment te sens-tu ? Veux-tu que j'allège la semaine pour favoriser la récupération ?`;
+        } else if (last.feedback && /(douleur|mal|blessure|fatigue|hs|ko|pas bien)/i.test(last.feedback)) {
+            initialText = `Bonjour ${user.name}. J'ai lu ton commentaire sur la dernière séance : "${last.feedback}". Ça m'inquiète un peu. Veux-tu qu'on adapte le programme ?`;
+        } else {
+            initialText = `Bonjour ${user.name} ! Bravo pour ta séance "${last.title}" terminée. Tout semble bien se passer. As-tu besoin d'ajustements pour la suite ?`;
+        }
+    }
+
+    setMessages([{ id: 'init', role: 'model', text: initialText, timestamp: Date.now() }]);
+  }, [user.name]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -45,7 +86,7 @@ export const Coach: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const { program, currentWeek, weekIndex } = getProgramContext();
+      const { program, currentWeek, weekIndex, completedSessions } = getProgramContext();
 
       // Define the Tool
       const updateWeekTool: FunctionDeclaration = {
@@ -63,7 +104,7 @@ export const Coach: React.FC = () => {
                         type: Type.OBJECT,
                         properties: {
                             id: { type: Type.STRING },
-                            day: { type: Type.STRING }, // e.g. "LUN 1"
+                            day: { type: Type.STRING },
                             type: { type: Type.STRING, enum: ['run', 'rest', 'interval', 'long', 'test', 'recovery', 'tempo'] },
                             title: { type: Type.STRING },
                             description: { type: Type.STRING },
@@ -86,33 +127,27 @@ export const Coach: React.FC = () => {
         }
       };
 
-      // Strong System Instruction
+      // Contextual System Instruction
       let systemInstruction = `Tu es un coach de course à pied expert.
       L'utilisateur s'appelle ${user.name}, niveau ${user.level}.
       
-      TÂCHE PRINCIPALE :
-      Tu as un ACCÈS TOTAL en écriture au programme via l'outil 'update_week_schedule'.
-      Si l'utilisateur exprime une douleur, une indisponibilité, ou une envie de changer son emploi du temps, tu DOIS utiliser l'outil 'update_week_schedule' pour modifier le JSON de la semaine.
+      TA MISSION :
+      Adapter le programme en fonction du feedback de l'utilisateur.
       
-      RÈGLES :
-      1. Ne demande pas "Voulez-vous que je le change ?". Fais-le et confirme ensuite.
-      2. Lors de la mise à jour, réécris les 7 jours de la semaine pour garder la structure intacte.
-      3. Garde les IDs des sessions existantes si tu ne fais que les déplacer.
+      HISTORIQUE RÉCENT (TRÈS IMPORTANT) :
+      ${getHistoryText(completedSessions)}
+      
+      Analyse cet historique. Si l'utilisateur mentionne de la fatigue ou une douleur, vérifie si cela correspond aux séances précédentes (RPE élevé, commentaires).
+      Sois proactif : si le RPE est élevé, propose de réduire l'intensité.
+      
+      PROGRAMME ACTUEL (Semaine ${currentWeek?.weekNumber || 1}) :
+      ${currentWeek ? JSON.stringify(currentWeek) : "Aucun programme actif."}
+      
+      OUTIL DE MODIFICATION :
+      Tu as un ACCÈS TOTAL en écriture via l'outil 'update_week_schedule'.
+      Si tu dois modifier le programme (alléger, déplacer, annuler), fais-le DIRECTEMENT via l'outil. Ne demande pas confirmation si l'intention de l'utilisateur est claire.
       `;
 
-      if (currentWeek) {
-          systemInstruction += `
-          
-          PROGRAMME ACTUEL (Semaine ${currentWeek.weekNumber}) :
-          ${JSON.stringify(currentWeek)}
-          
-          Utilise ces données comme base pour tes modifications.
-          `;
-      } else {
-          systemInstruction += "Aucun programme n'est actif. Invite l'utilisateur à en créer un dans l'onglet 'Nouveau plan'.";
-      }
-
-      // Construct history for context
       const history = messages.map(m => ({
           role: m.role,
           parts: [{ text: m.text }]
@@ -124,14 +159,11 @@ export const Coach: React.FC = () => {
         config: { 
             systemInstruction: systemInstruction,
             tools: [{ functionDeclarations: [updateWeekTool] }],
-            // Force the model to think about using the tool
             temperature: 0.3 
         }
       });
 
       const response = result.candidates?.[0]?.content;
-      
-      // Handle Function Call
       const functionCall = response?.parts?.find(p => p.functionCall)?.functionCall;
       
       if (functionCall) {
@@ -140,24 +172,17 @@ export const Coach: React.FC = () => {
              const args = functionCall.args as any;
              
              if (program && args.sessions) {
-                 // Execute Update
                  const updatedProgram = { ...program };
-                 
-                 // Find the correct week index
                  const targetWeekNum = Number(args.weekNumber);
                  const targetWeekIndex = updatedProgram.weeks.findIndex(w => w.weekNumber === targetWeekNum);
                  const finalIndex = targetWeekIndex !== -1 ? targetWeekIndex : weekIndex;
                  
                  if (finalIndex !== -1) {
-                     // Update the sessions
                      updatedProgram.weeks[finalIndex].sessions = args.sessions;
                      
-                     // Simulate a small delay for "Saving" effect
                      await new Promise(resolve => setTimeout(resolve, 800));
 
                      localStorage.setItem('currentProgram', JSON.stringify(updatedProgram));
-                     
-                     // Critical: Notify other components
                      window.dispatchEvent(new Event('programUpdated'));
 
                      const successMsg: ChatMessage = { 
@@ -169,18 +194,15 @@ export const Coach: React.FC = () => {
                      setMessages(prev => [...prev, successMsg]);
                  }
              }
-             setIsUpdatingProgram(false);
           }
       } else if (response?.parts?.[0]?.text) {
-          // Normal text response
           const aiMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: response.parts[0].text, timestamp: Date.now() };
           setMessages(prev => [...prev, aiMsg]);
       }
 
     } catch (error) {
       console.error(error);
-      const errorMsg: ChatMessage = { id: Date.now().toString(), role: 'model', text: "Désolé, je n'ai pas réussi à accéder à ton programme. Vérifie ta connexion.", timestamp: Date.now() };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "Erreur de connexion au coach.", timestamp: Date.now() }]);
     } finally {
       setIsLoading(false);
       setIsUpdatingProgram(false);
@@ -195,7 +217,7 @@ export const Coach: React.FC = () => {
          </div>
          <div>
              <h1 className="text-2xl font-black leading-tight">Coach IA</h1>
-             <p className="text-sm text-subtle-light dark:text-subtle-dark">Je modifie votre programme en temps réel.</p>
+             <p className="text-sm text-subtle-light dark:text-subtle-dark">Je m'adapte à ton ressenti (RPE) et tes commentaires.</p>
          </div>
       </div>
 
@@ -239,7 +261,7 @@ export const Coach: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ex: 'J'ai mal au genou, allège la semaine'..." 
+            placeholder="Parle-moi de ta forme, tes douleurs..." 
             className="flex-1 h-12 px-4 rounded-xl bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark focus:ring-2 focus:ring-primary/50 outline-none shadow-sm"
         />
         <button 
