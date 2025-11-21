@@ -5,17 +5,19 @@
     {
       "src": "https://lh3.googleusercontent.com/aida-public/AB6AXuAvmCR2C53lMgmMSyB68aF9m20thMFOVfEqy2CIPKTx4qSkJHtFdlbsY26kxTNW0RYL2q5MxJ96ouwBIrR-iOcfaC36SzFEPJ-TU-BC1ISVVKOlJKfJIHaRhsubyj2DVUW17f5A07spXZh8NH5CBmWG_zc7MumUrTpuONUMClavz4op-Inu5MCVU98wOB049rLkhtoHUbEMeMSQXBPfnNGMZG0G_pdBW_171Pfv9Q0jTi65Nsq2sJAmj5g1RROCIfE2YZU6c98lUuY",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://lh3.googleusercontent.com/aida-public/AB6AXuAvmCR2C53lMgmMSyB68aF9m20thMFOVfEqy2CIPKTx4qSkJHtFdlbsY26kxTNW0RYL2q5MxJ96ouwBIrR-iOcfaC36SzFEPJ-TU-BC1ISVVKOlJKfJIHaRhsubyj2DVUW17f5A07spXZh8NH5CBmWG_zc7MumUrTpuONUMClavz4op-Inu5MCVU98wOB049rLkhtoHUbEMeMSQXBPfnNGMZG0G_pdBW_171Pfv9Q0jTi65Nsq2sJAmj5g1RROCIfE2YZU6c98lUuY",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#13ec5b",
   "background_color": "#102216",
-  "orientation": "portrait"
+  "orientation": "portrait-primary"
 }

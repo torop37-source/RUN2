@@ -16,97 +16,114 @@ export const Dashboard: React.FC = () => {
   const weekDays = [
     { day: 'Lun', label: 'Repos', icon: 'hotel', type: 'rest' },
     { day: 'Mar', label: '5km', icon: 'directions_run', type: 'run', active: true },
-    { day: 'Mer', label: 'Fractionné', icon: 'speed', type: 'interval' },
+    { day: 'Mer', label: 'Frac.', icon: 'speed', type: 'interval' },
     { day: 'Jeu', label: 'Repos', icon: 'hotel', type: 'rest' },
     { day: 'Ven', label: '7km', icon: 'directions_run', type: 'run' },
     { day: 'Sam', label: 'Repos', icon: 'hotel', type: 'rest' },
-    { day: 'Dim', label: '10km Long', icon: 'timer', type: 'long' },
+    { day: 'Dim', label: '10km', icon: 'timer', type: 'long' },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-8">
-      {/* Mobile Install Button (Visible only on mobile if installable) */}
-      <div className="lg:hidden">
-         <InstallButton />
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-text-light dark:text-text-dark text-3xl md:text-4xl font-black leading-tight">Bonjour, Jean!</h1>
-          <p className="text-subtle-light dark:text-subtle-dark text-base font-normal">Voici le résumé de votre semaine.</p>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6">
+      
+      {/* Header avec Install Button mobile */}
+      <div className="flex flex-col gap-4">
+        <div className="lg:hidden w-full">
+           <InstallButton />
         </div>
-        <Link to="/create" className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark border border-border-light dark:border-border-dark hover:bg-primary/10 transition-colors font-bold text-sm">
-          <Icon name="edit" className="text-lg" />
-          Générer un nouveau plan
-        </Link>
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-text-light dark:text-text-dark text-2xl md:text-4xl font-black leading-tight">Bonjour, Jean!</h1>
+            <p className="text-subtle-light dark:text-subtle-dark text-sm md:text-base font-normal">Prêt pour votre séance d'aujourd'hui ?</p>
+          </div>
+          <Link to="/create" className="hidden lg:flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark border border-border-light dark:border-border-dark hover:bg-primary/10 transition-colors font-bold text-sm">
+            <Icon name="edit" className="text-lg" />
+            Générer un nouveau plan
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column (2/3) */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           
+          {/* Next Run Card (Hero) */}
+          <Link to="/program" className="relative flex flex-col md:flex-row rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group">
+            {/* Background Image with Overlay */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center z-0"
+              style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuBv7nPNz6bFMybbi_jvfxnuY3puBGGFYad99mr5x61rJeNT8ksHwE3CE0xTuT8gAoePI_ow__yMyE5qoiHIDmBbzaMQfDwrUsZ1f3g78GsnKSZdFWTmWOevCGO5dCjAVHhiy842iurzMDhdwhXdbjQKzOEzG5MECb87T7nDrbxw0olXL_mTewfTdKlDClK2Z-_8-3ZEBIbhIObeq158XH7qtQGFZQxoZNX1MOQcNftvO0f3gpYekI6L8BJWZZn0Pzid0YlbuZKRK-w")` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-0 md:bg-gradient-to-r md:from-black/90 md:via-black/50 md:to-transparent"></div>
+
+            <div className="relative z-10 p-6 flex flex-col justify-end md:justify-center gap-2 min-h-[240px] md:min-h-[200px]">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-1 rounded bg-primary text-background-dark text-xs font-bold uppercase tracking-wider">Aujourd'hui</span>
+                <span className="text-white/80 text-xs font-bold uppercase tracking-wider flex items-center gap-1"><Icon name="local_fire_department" className="text-orange-500" filled /> Session Clé</span>
+              </div>
+              
+              <h2 className="text-3xl font-black text-white mb-1">Course d'Endurance</h2>
+              <p className="text-gray-200 text-sm line-clamp-2 mb-4 max-w-md">Une course à allure modérée pour développer votre endurance de base et habituer le corps à l'effort long.</p>
+              
+              <div className="flex items-center gap-6 text-white font-medium">
+                 <div className="flex flex-col">
+                    <span className="text-xs opacity-70 uppercase">Distance</span>
+                    <span className="text-xl font-bold">5 km</span>
+                 </div>
+                 <div className="w-px h-8 bg-white/20"></div>
+                 <div className="flex flex-col">
+                    <span className="text-xs opacity-70 uppercase">Durée</span>
+                    <span className="text-xl font-bold">30 min</span>
+                 </div>
+              </div>
+            </div>
+            
+             <div className="absolute top-4 right-4 z-10 md:top-auto md:bottom-6 md:right-6">
+                <div className="size-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-primary group-hover:text-background-dark transition-colors">
+                   <Icon name="play_arrow" filled />
+                </div>
+             </div>
+          </Link>
+
           {/* AI Coach Insight */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-primary/20 to-transparent border border-primary/20 flex gap-4 items-start">
-             <div className="p-3 bg-background-light dark:bg-background-dark rounded-full text-primary shrink-0">
+          <div className="p-4 rounded-xl bg-card-light dark:bg-card-dark border border-primary/30 flex gap-4 items-start shadow-sm">
+             <div className="p-2 bg-primary/10 rounded-full text-primary shrink-0 mt-1">
                 <Icon name="smart_toy" filled />
              </div>
              <div>
-                <h3 className="font-bold text-lg mb-1">Le conseil du Coach IA</h3>
+                <h3 className="font-bold text-base mb-1">Le conseil du Coach</h3>
                 <p className="text-sm text-subtle-light dark:text-subtle-dark leading-relaxed">
                    {program 
-                     ? `Basé sur votre objectif de ${program.goal}, cette semaine est cruciale pour le volume. N'oubliez pas de bien dormir après la séance de fractionné.`
-                     : "Je n'ai pas encore assez de données. Créez votre premier programme pour recevoir des conseils personnalisés !"}
+                     ? `Pour votre objectif ${program.goal}, cette semaine misez sur le volume. Dormez bien ce soir !`
+                     : "Je n'ai pas encore assez de données. Créez votre premier programme !"}
                 </p>
              </div>
           </div>
 
-          {/* Next Run Card */}
-          <Link to="/program" className="flex flex-col md:flex-row rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-            <div 
-              className="w-full md:w-1/3 h-48 md:h-auto bg-cover bg-center group-hover:scale-105 transition-transform duration-700"
-              style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuBv7nPNz6bFMybbi_jvfxnuY3puBGGFYad99mr5x61rJeNT8ksHwE3CE0xTuT8gAoePI_ow__yMyE5qoiHIDmBbzaMQfDwrUsZ1f3g78GsnKSZdFWTmWOevCGO5dCjAVHhiy842iurzMDhdwhXdbjQKzOEzG5MECb87T7nDrbxw0olXL_mTewfTdKlDClK2Z-_8-3ZEBIbhIObeq158XH7qtQGFZQxoZNX1MOQcNftvO0f3gpYekI6L8BJWZZn0Pzid0YlbuZKRK-w")` }}
-            />
-            <div className="flex-1 p-6 flex flex-col justify-center gap-3">
-              <p className="text-subtle-light dark:text-subtle-dark text-sm font-bold uppercase tracking-wider">Prochaine course : Demain</p>
-              <h2 className="text-2xl font-bold text-text-light dark:text-text-dark group-hover:text-primary transition-colors">Course d'Endurance</h2>
-              <p className="text-subtle-light dark:text-subtle-dark">Une course à allure modérée pour développer votre endurance de base.</p>
-              <div className="flex gap-4 text-text-light dark:text-text-dark font-medium">
-                 <span>Distance : <b>5 km</b></span>
-                 <span className="w-px h-6 bg-border-light dark:bg-border-dark"></span>
-                 <span>Durée : <b>30 min</b></span>
-              </div>
-              <div className="mt-2 flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-2 text-orange-500 font-bold text-sm">
-                  <Icon name="local_fire_department" filled />
-                  Session Clé
-                </div>
-                <span className="text-primary font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Voir les détails <Icon name="arrow_forward" />
-                </span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Weekly Overview */}
+          {/* Weekly Overview (Scrollable on mobile) */}
           <div>
-            <h2 className="text-xl font-bold text-text-light dark:text-text-dark mb-4">Aperçu de la Semaine</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
+            <div className="flex justify-between items-center mb-3">
+               <h2 className="text-lg font-bold text-text-light dark:text-text-dark">Cette Semaine</h2>
+               <Link to="/program" className="text-xs font-bold text-primary">Voir tout</Link>
+            </div>
+            
+            <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x">
               {weekDays.map((day, idx) => (
                 <button 
                   key={idx}
                   onClick={() => navigate('/program')}
-                  className={`flex flex-col gap-3 p-3 rounded-xl border text-center items-center transition-all
+                  className={`flex-none snap-center w-20 flex flex-col gap-2 p-3 rounded-2xl border text-center items-center transition-all
                     ${day.active 
-                      ? 'bg-card-light dark:bg-card-dark border-primary ring-2 ring-primary shadow-md scale-105' 
-                      : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark opacity-90 hover:opacity-100 hover:border-primary/50'}
+                      ? 'bg-card-light dark:bg-card-dark border-primary ring-1 ring-primary shadow-lg shadow-primary/10 scale-105' 
+                      : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark opacity-80'}
                   `}
                 >
-                  <p className={`text-sm font-bold ${day.active ? 'text-primary' : 'text-text-light dark:text-text-dark'}`}>{day.day}</p>
-                  <div className={`flex justify-center items-center size-12 rounded-full ${day.active ? 'bg-primary text-text-light' : 'bg-primary/20 text-primary'}`}>
-                    <Icon name={day.icon} filled={day.active} className="text-2xl" />
+                  <p className={`text-xs font-bold ${day.active ? 'text-primary' : 'text-subtle-light dark:text-subtle-dark'}`}>{day.day}</p>
+                  <div className={`flex justify-center items-center size-10 rounded-full mb-1 ${day.active ? 'bg-primary text-text-light' : 'bg-background-light dark:bg-background-dark text-subtle-light'}`}>
+                    <Icon name={day.icon} filled={day.active} className="text-xl" />
                   </div>
-                  <p className="text-xs font-medium text-subtle-light dark:text-subtle-dark">{day.label}</p>
+                  <p className="text-[10px] font-medium text-subtle-light dark:text-subtle-dark truncate w-full">{day.label}</p>
                 </button>
               ))}
             </div>
@@ -114,90 +131,38 @@ export const Dashboard: React.FC = () => {
 
         </div>
 
-        {/* Right Column (1/3) */}
+        {/* Right Column (Stats) */}
         <div className="flex flex-col gap-6 lg:col-span-1">
-          
-          {/* Training Load (New Card) */}
-          <div className="p-6 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
-             <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-               <Icon name="ecg_heart" className="text-red-500" filled />
-               Charge d'entraînement
-             </h3>
-             <p className="text-xs text-subtle-light dark:text-subtle-dark mb-4">Basé sur votre RPE et durée</p>
-             
-             <div className="flex items-end gap-2 h-32 mb-2">
-                {[30, 45, 20, 0, 60, 10, 80].map((h, i) => (
-                   <div key={i} className="flex-1 bg-primary/20 rounded-t-sm relative group">
-                      <div style={{height: `${h}%`}} className={`absolute bottom-0 w-full rounded-t-sm ${h > 60 ? 'bg-orange-500' : 'bg-primary'} transition-all`}></div>
-                   </div>
-                ))}
-             </div>
-             <div className="flex justify-between text-xs font-bold text-subtle-light dark:text-subtle-dark uppercase">
-                <span>Lun</span>
-                <span>Dim</span>
-             </div>
-             <div className="mt-4 pt-4 border-t border-border-light dark:border-border-dark flex justify-between items-center">
-                <span className="text-sm font-bold">Total Hebdo</span>
-                <span className="text-xl font-black text-text-light dark:text-text-dark">450 UA</span>
-             </div>
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+             {/* Mini Stat Card 1 */}
+            <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+               <div className="flex items-center gap-2 mb-2 text-subtle-light dark:text-subtle-dark">
+                 <Icon name="straighten" className="text-primary" />
+                 <span className="text-xs font-bold uppercase">Distance</span>
+               </div>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">12.5 <span className="text-sm font-normal text-subtle-light">km</span></span>
+            </div>
+             {/* Mini Stat Card 2 */}
+            <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+               <div className="flex items-center gap-2 mb-2 text-subtle-light dark:text-subtle-dark">
+                 <Icon name="schedule" className="text-primary" />
+                 <span className="text-xs font-bold uppercase">Temps</span>
+               </div>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">1h 12m</span>
+            </div>
           </div>
 
-          {/* Stats Card */}
-          <Link to="/history" className="block p-6 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark hover:shadow-md transition-shadow group">
-            <h3 className="text-text-light-primary dark:text-text-dark-primary text-lg font-bold mb-4 flex justify-between items-center">
-               Statistiques Clés
-               <Icon name="arrow_forward" className="text-subtle-light group-hover:text-primary transition-colors" />
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-subtle-light dark:text-subtle-dark">
-                  <Icon name="straighten" className="text-primary" />
-                  <span>Distance totale</span>
-                </div>
-                <span className="font-bold text-text-light dark:text-text-dark">12.5 km</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-subtle-light dark:text-subtle-dark">
-                  <Icon name="schedule" className="text-primary" />
-                  <span>Temps total</span>
-                </div>
-                <span className="font-bold text-text-light dark:text-text-dark">1h 12m</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-subtle-light dark:text-subtle-dark">
-                  <Icon name="avg_pace" className="text-primary" />
-                  <span>Allure moyenne</span>
-                </div>
-                <span className="font-bold text-text-light dark:text-text-dark">5'45" /km</span>
-              </div>
-            </div>
-          </Link>
-
           {/* Progress Card */}
-          <Link to="/history" className="block p-6 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark hover:shadow-md transition-shadow">
-            <h3 className="font-bold text-lg mb-1 text-text-light dark:text-text-dark">Progression</h3>
-            <p className="text-xs text-subtle-light dark:text-subtle-dark mb-6">Objectif 10km en 8 semaines</p>
+          <Link to="/history" className="block p-5 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-base text-text-light dark:text-text-dark">Progression Global</h3>
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">60%</span>
+            </div>
             
-            <div className="flex items-center gap-6">
-              <div className="relative size-24 flex-shrink-0">
-                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                  <path className="text-primary/20" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                  <path className="text-primary" strokeDasharray="60, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl font-bold text-text-light dark:text-text-dark">60%</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-subtle-light dark:text-subtle-dark">Semaine 5 sur 8</p>
-                <p className="font-bold text-text-light dark:text-text-dark">Continue comme ça !</p>
-              </div>
+            <div className="w-full bg-background-light dark:bg-background-dark h-3 rounded-full overflow-hidden mb-2">
+               <div className="bg-primary h-full w-[60%] rounded-full"></div>
             </div>
-
-            <div className="mt-6 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/50 rounded-lg flex items-center gap-3 text-orange-600 dark:text-orange-400">
-              <Icon name="emoji_events" />
-              <span className="text-sm font-bold">Nouveau record 5km !</span>
-            </div>
+            <p className="text-xs text-subtle-light dark:text-subtle-dark">Semaine 5 sur 8 • Continuez comme ça !</p>
           </Link>
 
         </div>
