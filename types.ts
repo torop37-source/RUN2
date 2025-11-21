@@ -54,4 +54,22 @@ export interface UserProfile {
   name: string;
   level: string;
   avatar: string;
+  vma?: string;
+}
+
+export interface Shoe {
+  id: string;
+  name: string;
+  brand: string;
+  distance: number;
+  maxDistance: number;
+  isActive: boolean;
+  image?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
 }

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
@@ -10,9 +11,19 @@ export const Dashboard: React.FC = () => {
   const { user } = useUser();
   const navigate = useNavigate();
 
+  const loadProgram = () => {
+      const saved = localStorage.getItem('currentProgram');
+      if (saved) setProgram(JSON.parse(saved));
+  };
+
   useEffect(() => {
-     const saved = localStorage.getItem('currentProgram');
-     if (saved) setProgram(JSON.parse(saved));
+     loadProgram();
+     
+     // Listen for updates from the Coach
+     const handleUpdate = () => loadProgram();
+     window.addEventListener('programUpdated', handleUpdate);
+     
+     return () => window.removeEventListener('programUpdated', handleUpdate);
   }, []);
 
   const weekDays = [
@@ -24,6 +35,20 @@ export const Dashboard: React.FC = () => {
     { day: 'Sam', label: 'Repos', icon: 'hotel', type: 'rest' },
     { day: 'Dim', label: '10km', icon: 'timer', type: 'long' },
   ];
+
+  // Calcul de progression simple
+  const calculateProgress = () => {
+      if(!program) return 0;
+      let total = 0;
+      let done = 0;
+      program.weeks.forEach(w => w.sessions.forEach(s => {
+          total++;
+          if(s.completed) done++;
+      }));
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+  };
+
+  const progress = calculateProgress();
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6">
@@ -73,25 +98,23 @@ export const Dashboard: React.FC = () => {
             
              <div className="absolute top-4 right-4 z-10 md:top-auto md:bottom-6 md:right-6">
                 <div className="size-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-primary group-hover:text-background-dark transition-colors">
-                   <Icon name="play_arrow" filled />
+                   <Icon name="arrow_forward" filled />
                 </div>
              </div>
           </Link>
 
           {/* AI Coach Insight */}
-          <div className="p-4 rounded-xl bg-card-light dark:bg-card-dark border border-primary/30 flex gap-4 items-start shadow-sm">
+          <Link to="/coach" className="p-4 rounded-xl bg-card-light dark:bg-card-dark border border-primary/30 flex gap-4 items-start shadow-sm hover:bg-primary/5 transition-colors cursor-pointer">
              <div className="p-2 bg-primary/10 rounded-full text-primary shrink-0 mt-1">
-                <Icon name="smart_toy" filled />
+                <Icon name="support_agent" filled />
              </div>
              <div>
-                <h3 className="font-bold text-base mb-1">Le conseil du Coach</h3>
+                <h3 className="font-bold text-base mb-1">Besoin d'un conseil ?</h3>
                 <p className="text-sm text-subtle-light dark:text-subtle-dark leading-relaxed">
-                   {program 
-                     ? `Pour votre objectif ${program.goal}, la régularité est la clé. Si vous vous sentez fatigué, n'hésitez pas à ralentir, mais ne sautez pas la séance.`
-                     : "Je n'ai pas encore assez de données. Créez votre premier programme !"}
+                   Discutez avec votre coach IA pour adapter votre plan, parler nutrition ou gérer une petite douleur. Cliquez ici pour démarrer.
                 </p>
              </div>
-          </div>
+          </Link>
 
           {/* Weekly Overview (Scrollable on mobile) */}
           <div>
@@ -130,17 +153,17 @@ export const Dashboard: React.FC = () => {
             <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
                <div className="flex items-center gap-2 mb-2 text-subtle-light dark:text-subtle-dark">
                  <Icon name="straighten" className="text-primary" />
-                 <span className="text-xs font-bold uppercase">Distance</span>
+                 <span className="text-xs font-bold uppercase">Distance Totale</span>
                </div>
-               <span className="text-2xl font-black text-text-light dark:text-text-dark">- <span className="text-sm font-normal text-subtle-light">km</span></span>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">0 <span className="text-sm font-normal text-subtle-light">km</span></span>
             </div>
              {/* Mini Stat Card 2 */}
             <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
                <div className="flex items-center gap-2 mb-2 text-subtle-light dark:text-subtle-dark">
                  <Icon name="schedule" className="text-primary" />
-                 <span className="text-xs font-bold uppercase">Temps</span>
+                 <span className="text-xs font-bold uppercase">Séances</span>
                </div>
-               <span className="text-2xl font-black text-text-light dark:text-text-dark">-</span>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">0</span>
             </div>
           </div>
 
@@ -148,13 +171,13 @@ export const Dashboard: React.FC = () => {
           <Link to="/history" className="block p-5 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-base text-text-light dark:text-text-dark">Progression</h3>
-                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">0%</span>
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{progress}%</span>
             </div>
             
             <div className="w-full bg-background-light dark:bg-background-dark h-3 rounded-full overflow-hidden mb-2">
-               <div className="bg-primary h-full w-[5%] rounded-full"></div>
+               <div className="bg-primary h-full rounded-full" style={{ width: `${progress}%` }}></div>
             </div>
-            <p className="text-xs text-subtle-light dark:text-subtle-dark">Démarrez un programme pour suivre vos stats !</p>
+            <p className="text-xs text-subtle-light dark:text-subtle-dark">{progress > 0 ? "Continuez comme ça !" : "Démarrez votre première séance !"}</p>
           </Link>
 
         </div>

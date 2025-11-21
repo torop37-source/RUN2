@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProgramData, RunSession, WeeklyPlan } from '../types';
@@ -12,20 +13,30 @@ export const ProgramDetails: React.FC = () => {
   const [showAdaptModal, setShowAdaptModal] = useState(false);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
 
-  useEffect(() => {
-    const saved = localStorage.getItem('currentProgram');
-    if (saved) {
-      try {
-        setProgram(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse program", e);
+  const loadProgram = () => {
+      const saved = localStorage.getItem('currentProgram');
+      if (saved) {
+        try {
+          setProgram(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to parse program", e);
+        }
       }
-    }
+  };
+
+  useEffect(() => {
+    loadProgram();
+    // Listen for coach updates
+    const handleUpdate = () => loadProgram();
+    window.addEventListener('programUpdated', handleUpdate);
+    return () => window.removeEventListener('programUpdated', handleUpdate);
   }, []);
 
   const saveProgram = (updatedProgram: ProgramData) => {
      setProgram(updatedProgram);
      localStorage.setItem('currentProgram', JSON.stringify(updatedProgram));
+     // Notify other components even if changed here
+     window.dispatchEvent(new Event('programUpdated'));
   };
 
   const toggleSessionComplete = (session: RunSession) => {
@@ -123,7 +134,7 @@ export const ProgramDetails: React.FC = () => {
     );
   }
 
-  const currentWeek = program.weeks[selectedWeekIndex];
+  const currentWeek = program.weeks[selectedWeekIndex] || program.weeks[0];
 
   const getCardStyle = (type: string, completed: boolean) => {
     if (completed) return 'bg-[#e7f3eb] dark:bg-[#1a2c20] ring-1 ring-primary border-primary/50 opacity-70';

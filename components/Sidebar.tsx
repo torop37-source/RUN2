@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from './Icon';
@@ -42,6 +43,10 @@ export const Sidebar: React.FC = () => {
             <Icon name="calendar_month" filled={filledIcon('/program')} />
             <p className="text-sm font-medium leading-normal">Mon Programme</p>
           </Link>
+          <Link to="/coach" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive('/coach')}`}>
+             <Icon name="forum" filled={filledIcon('/coach')} />
+            <p className="text-sm font-medium leading-normal">Coach IA</p>
+          </Link>
           <Link to="/create" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive('/create')}`}>
              <Icon name="add_circle" filled={filledIcon('/create')} />
             <p className="text-sm font-medium leading-normal">Nouveau plan</p>
@@ -60,12 +65,16 @@ export const Sidebar: React.FC = () => {
       <div className="flex flex-col gap-4">
         <InstallButton />
         
-        <button 
-          onClick={() => navigate('/program')}
-          className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold leading-normal tracking-[0.015em] hover:opacity-90 transition-opacity"
-        >
-          <span className="truncate">Session en cours</span>
-        </button>
+        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <Icon name="tips_and_updates" />
+                <p className="text-xs font-bold uppercase">Astuce</p>
+            </div>
+            <p className="text-xs text-subtle-light dark:text-subtle-dark leading-relaxed">
+                N'oubliez pas de suivre l'usure de vos chaussures dans l'onglet Profil !
+            </p>
+        </div>
+
         <div className="flex flex-col gap-1">
           <button onClick={() => alert("Aide indisponible hors ligne.")} className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-text-light dark:text-text-dark hover:bg-primary/10">
             <Icon name="help" />

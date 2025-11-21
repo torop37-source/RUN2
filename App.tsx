@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
@@ -7,6 +8,7 @@ import { ProgramDetails } from './pages/ProgramDetails';
 import { CreateProgram } from './pages/CreateProgram';
 import { History } from './pages/History';
 import { Profile } from './pages/Profile';
+import { Coach } from './pages/Coach';
 import { Icon } from './components/Icon';
 import { UserProvider } from './contexts/UserContext';
 
@@ -37,6 +39,7 @@ const App: React.FC = () => {
                   <Route path="/create" element={<CreateProgram />} />
                   <Route path="/history" element={<History />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/coach" element={<Coach />} />
                 </Routes>
              </main>
   

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon';
 import { ProgramData, RunSession } from '../types';
@@ -6,7 +7,7 @@ export const History: React.FC = () => {
   const [completedSessions, setCompletedSessions] = useState<RunSession[]>([]);
   const [filter, setFilter] = useState<'all' | 'run'>('all');
 
-  useEffect(() => {
+  const loadHistory = () => {
     const saved = localStorage.getItem('currentProgram');
     if (saved) {
       try {
@@ -24,6 +25,13 @@ export const History: React.FC = () => {
         console.error(e);
       }
     }
+  };
+
+  useEffect(() => {
+    loadHistory();
+    const handleUpdate = () => loadHistory();
+    window.addEventListener('programUpdated', handleUpdate);
+    return () => window.removeEventListener('programUpdated', handleUpdate);
   }, []);
 
   const filteredSessions = completedSessions.filter(s => filter === 'all' || s.type === 'run' || s.type === 'interval' || s.type === 'long');
