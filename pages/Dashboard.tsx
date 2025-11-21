@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { ProgramData } from '../types';
 import { InstallButton } from '../components/InstallButton';
+import { useUser } from '../contexts/UserContext';
 
 export const Dashboard: React.FC = () => {
   const [program, setProgram] = useState<ProgramData | null>(null);
+  const { user } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export const Dashboard: React.FC = () => {
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-text-light dark:text-text-dark text-2xl md:text-4xl font-black leading-tight">Bonjour, Jean!</h1>
+            <h1 className="text-text-light dark:text-text-dark text-2xl md:text-4xl font-black leading-tight">Bonjour, {user.name}!</h1>
             <p className="text-subtle-light dark:text-subtle-dark text-sm md:text-base font-normal">Prêt pour votre séance d'aujourd'hui ?</p>
           </div>
           <Link to="/create" className="hidden lg:flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark border border-border-light dark:border-border-dark hover:bg-primary/10 transition-colors font-bold text-sm">
@@ -57,26 +59,16 @@ export const Dashboard: React.FC = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-0 md:bg-gradient-to-r md:from-black/90 md:via-black/50 md:to-transparent"></div>
 
-            <div className="relative z-10 p-6 flex flex-col justify-end md:justify-center gap-2 min-h-[240px] md:min-h-[200px]">
+            <div className="relative z-10 p-6 flex flex-col justify-end md:justify-center gap-2 min-h-[200px]">
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2 py-1 rounded bg-primary text-background-dark text-xs font-bold uppercase tracking-wider">Aujourd'hui</span>
                 <span className="text-white/80 text-xs font-bold uppercase tracking-wider flex items-center gap-1"><Icon name="local_fire_department" className="text-orange-500" filled /> Session Clé</span>
               </div>
               
-              <h2 className="text-3xl font-black text-white mb-1">Course d'Endurance</h2>
-              <p className="text-gray-200 text-sm line-clamp-2 mb-4 max-w-md">Une course à allure modérée pour développer votre endurance de base et habituer le corps à l'effort long.</p>
-              
-              <div className="flex items-center gap-6 text-white font-medium">
-                 <div className="flex flex-col">
-                    <span className="text-xs opacity-70 uppercase">Distance</span>
-                    <span className="text-xl font-bold">5 km</span>
-                 </div>
-                 <div className="w-px h-8 bg-white/20"></div>
-                 <div className="flex flex-col">
-                    <span className="text-xs opacity-70 uppercase">Durée</span>
-                    <span className="text-xl font-bold">30 min</span>
-                 </div>
-              </div>
+              <h2 className="text-2xl md:text-3xl font-black text-white mb-1">{program ? "Prochaine Séance" : "Créez un plan"}</h2>
+              <p className="text-gray-200 text-sm line-clamp-2 mb-4 max-w-md">
+                {program ? "Consultez votre programme pour voir les détails de la séance d'aujourd'hui." : "Aucun programme actif. Cliquez ici pour commencer votre entraînement."}
+              </p>
             </div>
             
              <div className="absolute top-4 right-4 z-10 md:top-auto md:bottom-6 md:right-6">
@@ -95,7 +87,7 @@ export const Dashboard: React.FC = () => {
                 <h3 className="font-bold text-base mb-1">Le conseil du Coach</h3>
                 <p className="text-sm text-subtle-light dark:text-subtle-dark leading-relaxed">
                    {program 
-                     ? `Pour votre objectif ${program.goal}, cette semaine misez sur le volume. Dormez bien ce soir !`
+                     ? `Pour votre objectif ${program.goal}, la régularité est la clé. Si vous vous sentez fatigué, n'hésitez pas à ralentir, mais ne sautez pas la séance.`
                      : "Je n'ai pas encore assez de données. Créez votre premier programme !"}
                 </p>
              </div>
@@ -104,7 +96,7 @@ export const Dashboard: React.FC = () => {
           {/* Weekly Overview (Scrollable on mobile) */}
           <div>
             <div className="flex justify-between items-center mb-3">
-               <h2 className="text-lg font-bold text-text-light dark:text-text-dark">Cette Semaine</h2>
+               <h2 className="text-lg font-bold text-text-light dark:text-text-dark">Aperçu Semaine</h2>
                <Link to="/program" className="text-xs font-bold text-primary">Voir tout</Link>
             </div>
             
@@ -120,8 +112,8 @@ export const Dashboard: React.FC = () => {
                   `}
                 >
                   <p className={`text-xs font-bold ${day.active ? 'text-primary' : 'text-subtle-light dark:text-subtle-dark'}`}>{day.day}</p>
-                  <div className={`flex justify-center items-center size-10 rounded-full mb-1 ${day.active ? 'bg-primary text-text-light' : 'bg-background-light dark:bg-background-dark text-subtle-light'}`}>
-                    <Icon name={day.icon} filled={day.active} className="text-xl" />
+                  <div className={`flex justify-center items-center size-8 rounded-full mb-1 ${day.active ? 'bg-primary text-text-light' : 'bg-background-light dark:bg-background-dark text-subtle-light'}`}>
+                    <Icon name={day.icon} filled={day.active} className="text-lg" />
                   </div>
                   <p className="text-[10px] font-medium text-subtle-light dark:text-subtle-dark truncate w-full">{day.label}</p>
                 </button>
@@ -140,7 +132,7 @@ export const Dashboard: React.FC = () => {
                  <Icon name="straighten" className="text-primary" />
                  <span className="text-xs font-bold uppercase">Distance</span>
                </div>
-               <span className="text-2xl font-black text-text-light dark:text-text-dark">12.5 <span className="text-sm font-normal text-subtle-light">km</span></span>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">- <span className="text-sm font-normal text-subtle-light">km</span></span>
             </div>
              {/* Mini Stat Card 2 */}
             <div className="p-4 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
@@ -148,21 +140,21 @@ export const Dashboard: React.FC = () => {
                  <Icon name="schedule" className="text-primary" />
                  <span className="text-xs font-bold uppercase">Temps</span>
                </div>
-               <span className="text-2xl font-black text-text-light dark:text-text-dark">1h 12m</span>
+               <span className="text-2xl font-black text-text-light dark:text-text-dark">-</span>
             </div>
           </div>
 
           {/* Progress Card */}
           <Link to="/history" className="block p-5 rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-base text-text-light dark:text-text-dark">Progression Global</h3>
-                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">60%</span>
+                <h3 className="font-bold text-base text-text-light dark:text-text-dark">Progression</h3>
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">0%</span>
             </div>
             
             <div className="w-full bg-background-light dark:bg-background-dark h-3 rounded-full overflow-hidden mb-2">
-               <div className="bg-primary h-full w-[60%] rounded-full"></div>
+               <div className="bg-primary h-full w-[5%] rounded-full"></div>
             </div>
-            <p className="text-xs text-subtle-light dark:text-subtle-dark">Semaine 5 sur 8 • Continuez comme ça !</p>
+            <p className="text-xs text-subtle-light dark:text-subtle-dark">Démarrez un programme pour suivre vos stats !</p>
           </Link>
 
         </div>
