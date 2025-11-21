@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProgramData, RunSession, WeeklyPlan } from '../types';
-import { GoogleGenAI, Type } from "@google/genai";
 
 export const ProgramDetails: React.FC = () => {
   const [program, setProgram] = useState<ProgramData | null>(null);
